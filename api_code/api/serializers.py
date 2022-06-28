@@ -17,12 +17,12 @@ class ProductSerializers(serializers.ModelSerializer):
 
 class CustomerSerializers(serializers.ModelSerializer):
     """ Specific fields you can access or related with pk """
-    product_name = serializers.ReadOnlyField(source='product.name')
-    # product = ProductSerializers(read_only=True)
+    # product_name = serializers.ReadOnlyField(source='product.name')
+    product = ProductSerializers(read_only=True)
     # We can HyperlinkedRelatedField for represent the specific url that are callable
     class Meta:
         model = Customer
-        fields = ["product","id","customer","delivered","created","updated","product_name"]
+        fields = ["product","id","customer","delivered","created","updated"]
         # depth = 1
 
 
@@ -48,5 +48,36 @@ class CustomerMultipleProductSerializers(serializers.ModelSerializer):
 
     
 
+class CustomerMultiProductSerializer(serializers.ModelSerializer):
+    # product_owner = serializers.ReadOnlyField(source="customer.username")
+    # product = serializers.StringRelatedField(many=True)
+    customer = serializers.ReadOnlyField(source="customer.username")
+    customer_email = serializers.ReadOnlyField(source="customer.email")
+    class Meta:
+        model = CustomerMultipleProduct
+        fields = "__all__"
+        depth = 1
 
-        
+    """ you can manipulate the data by using this method """
+    def to_representation(self,instance):
+        try:
+            data = super().to_representation(instance)
+            for i in range(len(data['product'])):
+                data['product'][i]['created'] = datetime.strptime(data['product'][i]['created'],"%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %I:%M %p")
+                data['product'][i]['updated'] = datetime.strptime(data['product'][i]['updated'],"%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %I:%M %p")
+                data['product'][i]['amount'] = float(data['product'][i]['price']) + 10
+                del data['product'][i]['price']
+            data['created'] = datetime.strptime(data['created'],"%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %I:%M %p")
+            data['updated'] = datetime.strptime(data['updated'],"%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %I:%M %p")
+        except Exception as exception:
+            return str(exception)
+        return data
+
+
+#2022-06-21T11:56:06.980746+05:30
+
+
+class CustomerHyperLinkedSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = CustomerMultipleProduct
+        fields = "__all__"
